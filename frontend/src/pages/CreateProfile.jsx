@@ -1,0 +1,160 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createProfile, getProfile, updateProfile } from '../api/client';
+import './CreateProfile.css';
+
+const SENSITIVITY_FIELDS = [
+  { key: 'violence', label: 'Violence', icon: '⚔️' },
+  { key: 'blood_gore', label: 'Blood / Gore', icon: '🩸' },
+  { key: 'self_harm', label: 'Self-Harm', icon: '🩹' },
+  { key: 'suicide', label: 'Suicide', icon: '⚠️' },
+  { key: 'gun_weapon', label: 'Gun / Weapon', icon: '🔫' },
+  { key: 'abuse', label: 'Abuse', icon: '🚫' },
+  { key: 'death_grief', label: 'Death / Grief', icon: '🕊️' },
+  { key: 'sexual_content', label: 'Sexual Content', icon: '🔞' },
+  { key: 'bullying', label: 'Bullying', icon: '😤' },
+  { key: 'substance_use', label: 'Substance Use', icon: '💊' },
+  { key: 'flash_seizure', label: 'Flash / Seizure', icon: '⚡' },
+  { key: 'loud_sensory', label: 'Loud / Sensory', icon: '🔊' },
+];
+
+const TOLERANCE_LABELS = ['Very Low', 'Low', 'Neutral', 'Moderate', 'High'];
+const AGE_BANDS = ['4-6', '7-9', '10-12', '13-15', '16+'];
+
+const defaultSensitivities = Object.fromEntries(SENSITIVITY_FIELDS.map((f) => [f.key, 3]));
+
+export default function CreateProfile() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
+  const navigate = useNavigate();
+
+  const [name, setName] = useState('');
+  const [ageBand, setAgeBand] = useState('7-9');
+  const [sensitivities, setSensitivities] = useState(defaultSensitivities);
+  const [calmingStrategy, setCalmingStrategy] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
+
+  useEffect(() => {
+    if (isEdit) {
+      getProfile(id).then((res) => {
+        const p = res.data;
+        setName(p.name);
+        setAgeBand(p.age_band);
+        setSensitivities(p.sensitivities);
+        setCalmingStrategy(p.calming_strategy || '');
+        setLoading(false);
+      }).catch(() => {
+        navigate('/');
+      });
+    }
+  }, [id, isEdit, navigate]);
+
+  const handleSliderChange = (key, value) => {
+    setSensitivities((prev) => ({ ...prev, [key]: parseInt(value) }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+
+    const payload = {
+      name,
+      age_band: ageBand,
+      sensitivities,
+      calming_strategy: calmingStrategy,
+    };
+
+    try {
+      if (isEdit) {
+        await updateProfile(id, payload);
+      } else {
+        await createProfile(payload);
+      }
+      navigate('/');
+    } catch (err) {
+      console.error('Failed to save profile', err);
+      alert('Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="form-loading"><div className="spinner" /><p>Loading profile...</p></div>;
+  }
+
+  return (
+    <div className="create-profile">
+      <header className="form-header">
+        <h1>{isEdit ? 'Edit Profile' : 'Create Child Profile'}</h1>
+        <p className="form-subtitle">Set up sensitivity preferences so SafeScreen can create personalized viewing plans.</p>
+      </header>
+
+      <form onSubmit={handleSubmit} className="profile-form">
+        {/* Basic info */}
+        <section className="form-section">
+          <h2>Basic Info</h2>
+          <div className="field">
+            <label htmlFor="name">Child's Name</label>
+            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" required maxLength={100} />
+          </div>
+          <div className="field">
+            <label>Age Band</label>
+            <div className="age-band-options">
+              {AGE_BANDS.map((band) => (
+                <button key={band} type="button" className={`age-btn ${ageBand === band ? 'active' : ''}`} onClick={() => setAgeBand(band)}>
+                  {band === '16+' ? '16+' : band} yrs
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Sensitivity sliders */}
+        <section className="form-section">
+          <h2>Sensitivity Sliders</h2>
+          <p className="section-desc">1 = very sensitive (low tolerance) → 5 = not sensitive (high tolerance)</p>
+          <div className="sliders-grid">
+            {SENSITIVITY_FIELDS.map((field) => (
+              <div key={field.key} className="slider-row">
+                <div className="slider-label">
+                  <span className="slider-icon">{field.icon}</span>
+                  <span>{field.label}</span>
+                </div>
+                <div className="slider-control">
+                  <input type="range" min={1} max={5} step={1} value={sensitivities[field.key]} onChange={(e) => handleSliderChange(field.key, e.target.value)} />
+                  <span className={`tolerance-badge t-${sensitivities[field.key]}`}>{TOLERANCE_LABELS[sensitivities[field.key] - 1]}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Calming strategy */}
+        <section className="form-section">
+          <h2>Calming Strategy</h2>
+          <p className="section-desc">Describe what helps your child calm down during breaks — breathing exercises, looking at cute animals, listening to music, etc.</p>
+          <div className="field">
+            <textarea
+              id="calmingStrategy"
+              value={calmingStrategy}
+              onChange={(e) => setCalmingStrategy(e.target.value)}
+              placeholder="e.g. Deep breathing with counting to 5, looking at pictures of puppies, listening to calm music, taking a short walk..."
+              maxLength={500}
+              rows={3}
+            />
+            <span className="char-count">{calmingStrategy.length}/500</span>
+          </div>
+        </section>
+
+        <div className="form-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/')}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving || !name.trim()}>
+            {saving ? 'Saving...' : isEdit ? 'Update Profile' : 'Create Profile'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
