@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import profiles, movies
+from app.routers import profiles, movies, analysis
 
 app = FastAPI(
     title="SafeScreen API",
@@ -21,6 +21,7 @@ app.add_middleware(
 # Register routers
 app.include_router(profiles.router)
 app.include_router(movies.router)
+app.include_router(analysis.router)
 
 
 @app.get("/api/health")

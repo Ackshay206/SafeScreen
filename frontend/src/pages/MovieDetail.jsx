@@ -94,16 +94,19 @@ export default function MovieDetail() {
               return (
                 <div key={seg.segment_id} className="timeline-segment">
                   <div className="timeline-bar" style={{ backgroundColor: intensityColor(peak) }}>
-                    <span className="timeline-time">{seg.start_time.slice(0, 5)} – {seg.end_time.slice(0, 5)}</span>
+                    <span className="timeline-time">{seg.start_time} – {seg.end_time}</span>
                   </div>
                   <div className="timeline-body">
-                    <p className="timeline-summary">{seg.summary}</p>
                     <div className="timeline-flags">
-                      {Object.entries(seg.flags).filter(([, v]) => v > 0).map(([key, intensity]) => (
-                        <span key={key} className="mini-flag" title={`${FLAG_META[key]?.label}: ${intensity}/5`}>
-                          {FLAG_META[key]?.icon} {intensity}
-                        </span>
-                      ))}
+                      {Object.entries(seg.flags).filter(([, v]) => v > 0).length === 0 ? (
+                        <span className="mini-flag safe-flag">✓ No flags</span>
+                      ) : (
+                        Object.entries(seg.flags).filter(([, v]) => v > 0).map(([key, intensity]) => (
+                          <span key={key} className={`mini-flag intensity-${intensity}`}>
+                            {FLAG_META[key]?.label} ({intensity}/5)
+                          </span>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>

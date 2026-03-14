@@ -73,8 +73,8 @@ export default function MovieDashboard() {
                   </div>
                   <div className="flag-chips">
                     {activeFlags(movie.overall_flags).map(([key, severity]) => (
-                      <span key={key} className={`flag-chip severity-${severity}`} title={`${FLAG_LABELS[key]?.label}: ${severity}`}>
-                        {FLAG_LABELS[key]?.icon} {severity}
+                      <span key={key} className={`flag-chip severity-${severity}`} title={severity}>
+                        {FLAG_LABELS[key]?.label}
                       </span>
                     ))}
                   </div>

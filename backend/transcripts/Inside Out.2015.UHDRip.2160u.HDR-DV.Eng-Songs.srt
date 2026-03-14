@@ -1,0 +1,213 @@
+﻿1
+00:06:06,491 --> 00:06:08,285
+♪ <i>Who's your friend who likes to play?</i>
+
+2
+00:06:08,368 --> 00:06:09,995
+♪ <i>Bing Bong, Bing Bong!</i> ♪
+
+3
+00:35:32,714 --> 00:35:34,674
+♪ <i>TripleDent gum</i>
+♪ <i>Will make you smile</i> ♪
+
+4
+00:35:44,184 --> 00:35:45,268
+♪ <i>TripleDent gum</i> ♪
+
+5
+00:35:55,904 --> 00:35:56,905
+♪ <i>TripleDent gum</i> ♪
+
+6
+00:36:02,535 --> 00:36:03,578
+♪ <i>TripleDent gum</i> ♪
+
+7
+00:39:03,550 --> 00:39:04,801
+♪ <i>Who's your friend who likes to play?</i>
+
+8
+00:39:04,926 --> 00:39:06,135
+♪ <i>Bing Bong
+Bing Bong</i>
+
+9
+00:39:06,261 --> 00:39:07,595
+♪ <i>His rocket makes you yell "Hooray!"</i>
+
+10
+00:39:07,762 --> 00:39:09,055
+♪ <i>Bing Bong, Bing Bong</i> ♪
+
+11
+00:47:37,355 --> 00:47:38,898
+♪ <i>Who's your friend who likes to play?</i> ♪
+
+12
+00:51:14,071 --> 00:51:15,739
+♪ <i>TripleDent gum</i>
+♪ <i>Will make you smile</i> ♪
+
+13
+00:55:14,269 --> 00:55:15,395
+♪ <i>Who's your friend</i>
+
+14
+00:55:15,521 --> 00:55:16,814
+♪ <i>Who likes to play?
+Bing Bong, Bing Bong!</i> ♪
+
+15
+01:01:10,250 --> 01:01:11,418
+♪ <i>TripleDent gum</i> ♪
+
+16
+01:10:44,824 --> 01:10:46,993
+♪ <i>Who's your friend who likes to play?</i>
+
+17
+01:10:50,913 --> 01:10:53,207
+♪ <i>Who's your friend who likes to play?</i>
+
+18
+01:10:54,000 --> 01:10:56,794
+♪ <i>His rocket makes you yell "Hooray!"</i>
+
+19
+01:11:00,089 --> 01:11:01,632
+♪ <i>Who's the best in every way</i>
+
+20
+01:11:01,758 --> 01:11:03,050
+♪ <i>And wants to sing this song to say?</i>
+
+21
+01:11:03,259 --> 01:11:04,844
+♪ <i>Who's your friend who likes to play?</i>
+
+22
+01:11:04,927 --> 01:11:06,345
+♪ <i>Bing Bong, Bing Bong</i>
+
+23
+01:11:06,471 --> 01:11:07,889
+♪ <i>His rocket makes you yell "Hooray!"</i>
+
+24
+01:11:27,033 --> 01:11:28,075
+♪ <i>Who's your friend who likes to play?</i>
+
+25
+01:11:28,201 --> 01:11:29,368
+♪ <i>Bing Bong, Bing Bong</i>
+
+26
+01:11:29,452 --> 01:11:30,578
+♪ <i>His rocket makes you yell "Hooray!"</i>
+
+27
+01:11:30,703 --> 01:11:31,788
+♪ <i>Bing Bong, Bing Bong</i>
+
+28
+01:11:31,871 --> 01:11:32,955
+♪ <i>Who's the best in every way</i>
+
+29
+01:11:33,039 --> 01:11:34,373
+♪ <i>And wants to sing this song to say</i>
+
+30
+01:11:35,541 --> 01:11:36,542
+♪ <i>Who's your friend who likes to play?</i>
+
+31
+01:11:36,584 --> 01:11:38,753
+♪ <i>Bing Bong, Bing Bong
+His rocket makes you yell "Hooray!"</i>
+
+32
+01:11:38,878 --> 01:11:39,879
+♪ <i>Bing Bong, Bing Bong</i>
+
+33
+01:11:40,004 --> 01:11:41,047
+♪ <i>Who's the best in every way</i>
+
+34
+01:11:41,130 --> 01:11:42,548
+♪ <i>And wants to sing the song to say...</i>
+
+35
+01:11:51,057 --> 01:11:52,141
+♪ <i>Who's your friend who likes to play?</i>
+
+36
+01:11:52,225 --> 01:11:53,267
+♪ <i>Bing Bong, Bing Bong</i>
+
+37
+01:11:53,351 --> 01:11:55,186
+♪ <i>His rocket makes you yell "Hooray!"
+Bing Bong, Bing Bong</i>
+
+38
+01:11:55,269 --> 01:11:57,438
+♪ <i>Who's the best in every way
+And wants to sing this song to say</i>
+
+39
+01:11:57,522 --> 01:11:58,981
+♪ <i>Who's your friend who likes to play?</i> ♪
+
+40
+01:12:16,916 --> 01:12:17,917
+♪ <i>Bing Bong, Bing Bong</i>
+
+41
+01:12:18,000 --> 01:12:20,086
+♪ <i>His rocket makes you yell "Hooray!"
+Bing Bong, Bing Bong</i>
+
+42
+01:12:20,169 --> 01:12:22,255
+♪ <i>Who's the best in every way
+And wants to sing this song to say</i>
+
+43
+01:12:22,380 --> 01:12:24,423
+♪ <i>Who's your friend who likes to play?
+Bing Bong, Bing Bong</i>
+
+44
+01:12:27,343 --> 01:12:28,511
+♪ <i>To sing this song to say</i>
+
+45
+01:12:28,594 --> 01:12:29,637
+♪ <i>Who's your friend who likes to...</i>
+
+46
+01:12:31,222 --> 01:12:33,266
+♪ <i>Who's your friend who likes to play?
+Bing Bong, Bing Bong</i>
+
+47
+01:12:33,391 --> 01:12:35,101
+♪ <i>His rocket makes you yell "Hooray!"
+Bing Bong, Bing Bong</i>
+
+48
+01:12:35,226 --> 01:12:37,270
+♪ <i>Who's the best in every way
+and wants to sing this song to say</i>
+
+49
+01:12:37,395 --> 01:12:38,604
+♪ <i>Bing Bong</i> ♪
+
+50
+01:27:37,502 --> 01:27:38,545
+♪ <i>TripleDent gum</i> ♪
+

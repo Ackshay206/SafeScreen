@@ -27,6 +27,7 @@ create table if not exists movies (
   synopsis               text not null default '',
   mpaa_rating            text not null default 'NR',
   transcript_file        text,
+  transcript_content     text,
   overall_flags          jsonb not null default '{}'::jsonb,
   segments               jsonb not null default '[]'::jsonb,
   plain_language_summary text not null default '',

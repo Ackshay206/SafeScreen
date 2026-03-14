@@ -1,159 +1,122 @@
 """
-Seed script: inserts sample movies into Supabase.
+Seed script: fetches movie metadata from OMDb and loads .srt transcripts.
 Run with:  python -m app.seed
+
+Place your .srt files in backend/transcripts/ named to match the MOVIES list below
+(e.g. "The Dark Knight.srt", "Inside Out 2.srt").
 """
+import os
+import sys
+import requests
 from datetime import datetime, timezone
 from app.database import supabase
+from app.config import SUPABASE_URL
 
+OMDB_API_KEY = "7ca1daa0"
+OMDB_BASE = "http://www.omdbapi.com/"
+TRANSCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "transcripts")
 
-SAMPLE_MOVIES = [
-    {
-        "title": "The Dark Knight",
-        "year": 2008,
-        "genre": ["Action", "Crime", "Drama"],
-        "runtime_minutes": 152,
-        "poster_url": "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911BTUgMe1nFGDi.jpg",
-        "synopsis": "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
-        "mpaa_rating": "PG-13",
-        "transcript_file": "the_dark_knight.srt",
-        "overall_flags": {
-            "violence": "intense", "blood_gore": "moderate", "self_harm": "none",
-            "suicide": "mild", "gun_weapon": "intense", "abuse": "moderate",
-            "death_grief": "intense", "sexual_content": "none", "bullying": "moderate",
-            "substance_use": "none", "flash_seizure": "mild", "loud_sensory": "intense",
-        },
-        "segments": [
-            {"segment_id": 1, "start_time": "00:00:00", "end_time": "00:05:00",
-             "summary": "Bank heist sequence — masked robbers storm a bank with guns, multiple characters are killed.",
-             "flags": {"violence": 5, "blood_gore": 2, "self_harm": 0, "suicide": 0, "gun_weapon": 5, "abuse": 0, "death_grief": 3, "sexual_content": 0, "bullying": 0, "substance_use": 0, "flash_seizure": 1, "loud_sensory": 4}},
-            {"segment_id": 2, "start_time": "00:05:00", "end_time": "00:15:00",
-             "summary": "Bruce Wayne at a fundraiser, dialogue-heavy, light tension.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 0, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 0, "substance_use": 1, "flash_seizure": 0, "loud_sensory": 0}},
-            {"segment_id": 3, "start_time": "00:15:00", "end_time": "00:25:00",
-             "summary": "Batman confronts criminals in a parking garage. Intense fight sequence.",
-             "flags": {"violence": 4, "blood_gore": 1, "self_harm": 0, "suicide": 0, "gun_weapon": 2, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 1, "substance_use": 0, "flash_seizure": 2, "loud_sensory": 3}},
-            {"segment_id": 4, "start_time": "00:25:00", "end_time": "00:40:00",
-             "summary": "Joker's threatening video message and interrogation scene. Psychological intimidation.",
-             "flags": {"violence": 4, "blood_gore": 3, "self_harm": 0, "suicide": 0, "gun_weapon": 3, "abuse": 4, "death_grief": 3, "sexual_content": 0, "bullying": 3, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 3}},
-            {"segment_id": 5, "start_time": "00:40:00", "end_time": "00:55:00",
-             "summary": "Harvey Dent courthouse scene, chase sequence through the city, truck flipping.",
-             "flags": {"violence": 4, "blood_gore": 1, "self_harm": 0, "suicide": 0, "gun_weapon": 4, "abuse": 0, "death_grief": 1, "sexual_content": 0, "bullying": 0, "substance_use": 0, "flash_seizure": 3, "loud_sensory": 5}},
-        ],
-        "plain_language_summary": "The Dark Knight contains intense action violence throughout, including gunfire, explosions, and hand-to-hand combat. The Joker's scenes involve psychological intimidation and threats. There are multiple character deaths. The film has loud, intense sequences with flashing lights during explosions and chase scenes. No sexual content or substance use. Recommended for older teens with co-viewing for intense sequences.",
-    },
-    {
-        "title": "Inside Out 2",
-        "year": 2024,
-        "genre": ["Animation", "Family", "Comedy"],
-        "runtime_minutes": 96,
-        "poster_url": "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg",
-        "synopsis": "Riley enters puberty and experiences a whole new set of emotions that turn her world upside down.",
-        "mpaa_rating": "PG",
-        "transcript_file": "inside_out_2.srt",
-        "overall_flags": {
-            "violence": "none", "blood_gore": "none", "self_harm": "mild",
-            "suicide": "none", "gun_weapon": "none", "abuse": "none",
-            "death_grief": "mild", "sexual_content": "none", "bullying": "moderate",
-            "substance_use": "none", "flash_seizure": "none", "loud_sensory": "mild",
-        },
-        "segments": [
-            {"segment_id": 1, "start_time": "00:00:00", "end_time": "00:10:00",
-             "summary": "Riley's emotions are introduced. Lighthearted setup of her daily life.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 0, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 0, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 0}},
-            {"segment_id": 2, "start_time": "00:10:00", "end_time": "00:25:00",
-             "summary": "New emotions arrive — Anxiety takes control. Riley feels overwhelmed.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 1, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 1, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 2}},
-            {"segment_id": 3, "start_time": "00:25:00", "end_time": "00:45:00",
-             "summary": "Riley struggles with social dynamics at hockey camp. Conflicts with friends.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 2, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 1, "sexual_content": 0, "bullying": 3, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 1}},
-            {"segment_id": 4, "start_time": "00:45:00", "end_time": "01:15:00",
-             "summary": "Emotional climax — Riley has a panic attack. Emotions work together to help her.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 2, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 2, "sexual_content": 0, "bullying": 2, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 2}},
-        ],
-        "plain_language_summary": "Inside Out 2 explores anxiety, self-doubt, and growing up. No violence or explicit content, but contains emotionally intense scenes depicting panic attacks, social exclusion, and fear of not belonging. The bullying is social (exclusion, judgment) rather than physical.",
-    },
-    {
-        "title": "Spider-Man: Across the Spider-Verse",
-        "year": 2023,
-        "genre": ["Animation", "Action", "Adventure"],
-        "runtime_minutes": 140,
-        "poster_url": "https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg",
-        "synopsis": "Miles Morales catapults across the Multiverse, where he encounters a team of Spider-People charged with protecting its very existence.",
-        "mpaa_rating": "PG",
-        "transcript_file": "spider_verse_2.srt",
-        "overall_flags": {
-            "violence": "moderate", "blood_gore": "mild", "self_harm": "none",
-            "suicide": "none", "gun_weapon": "mild", "abuse": "none",
-            "death_grief": "moderate", "sexual_content": "none", "bullying": "mild",
-            "substance_use": "none", "flash_seizure": "intense", "loud_sensory": "intense",
-        },
-        "segments": [
-            {"segment_id": 1, "start_time": "00:00:00", "end_time": "00:10:00",
-             "summary": "Miles at home and school, establishing relationships.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 0, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 1, "substance_use": 0, "flash_seizure": 1, "loud_sensory": 1}},
-            {"segment_id": 2, "start_time": "00:10:00", "end_time": "00:25:00",
-             "summary": "First multiverse portal — fast visual cuts, bright flashing colors, intense action.",
-             "flags": {"violence": 3, "blood_gore": 0, "self_harm": 0, "suicide": 0, "gun_weapon": 1, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 0, "substance_use": 0, "flash_seizure": 5, "loud_sensory": 5}},
-            {"segment_id": 3, "start_time": "00:25:00", "end_time": "00:50:00",
-             "summary": "Miles meets the Spider-Society. Discussion of 'canon events' — tragedies that must happen.",
-             "flags": {"violence": 2, "blood_gore": 1, "self_harm": 0, "suicide": 0, "gun_weapon": 1, "abuse": 0, "death_grief": 4, "sexual_content": 0, "bullying": 1, "substance_use": 0, "flash_seizure": 3, "loud_sensory": 3}},
-            {"segment_id": 4, "start_time": "00:50:00", "end_time": "01:10:00",
-             "summary": "Miles learns his father may die. Emotional confrontation and a massive chase.",
-             "flags": {"violence": 3, "blood_gore": 1, "self_harm": 0, "suicide": 0, "gun_weapon": 2, "abuse": 0, "death_grief": 5, "sexual_content": 0, "bullying": 0, "substance_use": 0, "flash_seizure": 4, "loud_sensory": 4}},
-        ],
-        "plain_language_summary": "Spider-Man: Across the Spider-Verse features heavy visual stimulation with rapid scene changes and bright flashing portals. The flash/seizure risk is significant. The film deals with themes of parental death and loss. Action violence is stylized but frequent.",
-    },
-    {
-        "title": "Wonder",
-        "year": 2017,
-        "genre": ["Drama", "Family"],
-        "runtime_minutes": 113,
-        "poster_url": "https://image.tmdb.org/t/p/w500/o0jEAezLV9TpFMGSXfMFMBpHTOR.jpg",
-        "synopsis": "August Pullman, a boy with facial differences, enters fifth grade at a mainstream school for the first time.",
-        "mpaa_rating": "PG",
-        "transcript_file": "wonder.srt",
-        "overall_flags": {
-            "violence": "mild", "blood_gore": "none", "self_harm": "mild",
-            "suicide": "none", "gun_weapon": "none", "abuse": "none",
-            "death_grief": "moderate", "sexual_content": "none", "bullying": "intense",
-            "substance_use": "none", "flash_seizure": "none", "loud_sensory": "mild",
-        },
-        "segments": [
-            {"segment_id": 1, "start_time": "00:00:00", "end_time": "00:15:00",
-             "summary": "Auggie's daily life at home. Nervous about starting school. Loving family.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 0, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 0, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 0}},
-            {"segment_id": 2, "start_time": "00:15:00", "end_time": "00:35:00",
-             "summary": "First days at school. Auggie faces staring, whispering, and overt bullying.",
-             "flags": {"violence": 1, "blood_gore": 0, "self_harm": 1, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 5, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 1}},
-            {"segment_id": 3, "start_time": "00:35:00", "end_time": "00:55:00",
-             "summary": "Auggie makes a friend but discovers Jack was talking behind his back.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 2, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 1, "sexual_content": 0, "bullying": 4, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 0}},
-            {"segment_id": 4, "start_time": "00:55:00", "end_time": "01:15:00",
-             "summary": "Via's perspective — feeling invisible. Family dog Daisy dies.",
-             "flags": {"violence": 0, "blood_gore": 0, "self_harm": 1, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 4, "sexual_content": 0, "bullying": 1, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 0}},
-            {"segment_id": 5, "start_time": "01:15:00", "end_time": "01:50:00",
-             "summary": "Physical confrontation on a field trip. Friends stand up for Auggie. Uplifting ending.",
-             "flags": {"violence": 2, "blood_gore": 0, "self_harm": 0, "suicide": 0, "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0, "bullying": 3, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 1}},
-        ],
-        "plain_language_summary": "Wonder is centered on bullying, acceptance, and kindness. The bullying ranges from social exclusion to a physical confrontation. A beloved pet dies on screen. Ultimately uplifting and promotes empathy.",
-    },
+# ---- Movie list: OMDb search title → exact .srt filename ----
+MOVIES = [
+    {"title": "Alien", "year": "1979", "srt": "Alien (1979) Director's Cut.srt"},
+    {"title": "Forrest Gump", "year": "1994", "srt": "Forrest Gump.srt"},
+    {"title": "Halloween", "year": "1978", "srt": "Halloween (1978) UHD BluRay 2160p HDR10 DV HEVC TrueHD Atmos 7.1 x265-E.eng.srt"},
+    {"title": "Inside Out", "year": "2015", "srt": "Inside Out.2015.UHDRip.2160u.HDR-DV.Eng-Songs.srt"},
+    {"title": "Jaws 3-D", "year": "1983", "srt": "Jaws.3-D.1983.1080p.BluRay.x264.AAC-[YTS.MX].en.srt"},
+    {"title": "Saw", "year": "2004", "srt": "SAW (2004) [1080p] 23.976FPS 1.43.10TIME.en.srt"},
+    {"title": "The Godfather", "year": "1972", "srt": "The Godfather (1972).eng.sdh.srt"},
+    {"title": "The Lion King", "year": "2019", "srt": "The.Lion.King.2019.1080p.BluRay.x265-YAWNTiC_eng.srt"},
+    {"title": "Toy Story", "year": "1995", "srt": "Toy Story (1995) Bluray-1080p Proper.en.srt"},
+    {"title": "Zootopia", "year": "2016", "srt": "Zootopia (2016) 1080P DSNP WEB-DL DDP5.1 Atmos H264 TURG_English.srt"},
 ]
 
 
+def fetch_omdb(title: str, year: str = None) -> dict | None:
+    """Fetch movie metadata from OMDb API."""
+    params = {"t": title, "plot": "full", "apikey": OMDB_API_KEY}
+    if year:
+        params["y"] = year
+    resp = requests.get(OMDB_BASE, params=params)
+    data = resp.json()
+    if data.get("Response") == "False":
+        print(f"  ⚠️  OMDb lookup failed for '{title}': {data.get('Error')}")
+        return None
+    return data
+
+
+def parse_runtime(runtime_str: str) -> int:
+    """Parse '152 min' → 152."""
+    try:
+        return int(runtime_str.replace(" min", "").replace("N/A", "0"))
+    except (ValueError, AttributeError):
+        return 0
+
+
+def load_transcript(srt_filename: str) -> str | None:
+    """Load .srt transcript from the transcripts/ directory."""
+    filepath = os.path.join(TRANSCRIPTS_DIR, srt_filename)
+    if not os.path.exists(filepath):
+        print(f"  ℹ️  No transcript found: {srt_filename}")
+        return None
+    with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+def omdb_to_row(omdb_data: dict, transcript: str | None, srt_filename: str) -> dict:
+    """Convert OMDb response to our movies table row."""
+    genres = [g.strip() for g in omdb_data.get("Genre", "").split(",") if g.strip()]
+    poster = omdb_data.get("Poster", "")
+    if poster == "N/A":
+        poster = ""
+
+    return {
+        "title": omdb_data.get("Title", ""),
+        "year": int(omdb_data.get("Year", "0")[:4]),
+        "genre": genres,
+        "runtime_minutes": parse_runtime(omdb_data.get("Runtime", "0 min")),
+        "poster_url": poster,
+        "synopsis": omdb_data.get("Plot", ""),
+        "mpaa_rating": omdb_data.get("Rated", "NR"),
+        "transcript_file": srt_filename,
+        "overall_flags": {},           # populated later by LLM analysis
+        "segments": [],                # populated later by LLM analysis
+        "plain_language_summary": "",   # populated later
+        "analyzed_at": None,
+        "transcript_content": transcript,
+    }
+
+
 def seed():
-    now = datetime.now(timezone.utc).isoformat()
-
     # Clear existing movies
+    print("Clearing existing movies...")
     supabase.table("movies").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
-    print("Cleared existing movies.")
 
-    for movie in SAMPLE_MOVIES:
-        movie["analyzed_at"] = now
+    print(f"\nFetching metadata for {len(MOVIES)} movies from OMDb...\n")
 
-    result = supabase.table("movies").insert(SAMPLE_MOVIES).execute()
-    print(f"Inserted {len(result.data)} sample movies.")
+    rows = []
+    for movie in MOVIES:
+        title, year, srt = movie["title"], movie["year"], movie["srt"]
+        print(f"📥 {title} ({year})")
+        omdb_data = fetch_omdb(title, year)
+        if not omdb_data:
+            continue
+
+        transcript = load_transcript(srt)
+        row = omdb_to_row(omdb_data, transcript, srt)
+        rows.append(row)
+        print(f"  ✅ {row['title']} ({row['year']}) — {row['mpaa_rating']} — {row['runtime_minutes']} min")
+        if transcript:
+            print(f"  📄 Transcript loaded ({len(transcript):,} chars)")
+
+    if not rows:
+        print("\n❌ No movies to insert.")
+        return
+
+    result = supabase.table("movies").insert(rows).execute()
+    print(f"\n🎬 Inserted {len(result.data)} movies into Supabase.")
     for row in result.data:
-        print(f"  {row['title']}: {row['id']}")
+        has_transcript = "📄" if row.get("transcript_content") else "—"
+        print(f"  {row['title']}: {row['id']}  {has_transcript}")
 
 
 if __name__ == "__main__":
