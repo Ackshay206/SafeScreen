@@ -12,7 +12,7 @@ def row_to_response(row: dict) -> ProfileResponse:
     return ProfileResponse(
         id=row["id"],
         name=row["name"],
-        age_band=row["age_band"],
+        age=row["age"],
         sensitivities=row["sensitivities"],
         calming_strategy=row.get("calming_strategy", ""),
         created_at=row["created_at"],
@@ -25,7 +25,7 @@ async def create_profile(profile: ProfileCreate):
     now = datetime.now(timezone.utc).isoformat()
     row = {
         "name": profile.name,
-        "age_band": profile.age_band,
+        "age": profile.age,
         "sensitivities": profile.sensitivities.model_dump(),
         "calming_strategy": profile.calming_strategy,
         "created_at": now,

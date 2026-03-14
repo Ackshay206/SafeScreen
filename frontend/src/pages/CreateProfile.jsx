@@ -19,7 +19,6 @@ const SENSITIVITY_FIELDS = [
 ];
 
 const TOLERANCE_LABELS = ['Very Low', 'Low', 'Neutral', 'Moderate', 'High'];
-const AGE_BANDS = ['4-6', '7-9', '10-12', '13-15', '16+'];
 
 const defaultSensitivities = Object.fromEntries(SENSITIVITY_FIELDS.map((f) => [f.key, 3]));
 
@@ -29,7 +28,7 @@ export default function CreateProfile() {
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
-  const [ageBand, setAgeBand] = useState('7-9');
+  const [age, setAge] = useState('');
   const [sensitivities, setSensitivities] = useState(defaultSensitivities);
   const [calmingStrategy, setCalmingStrategy] = useState('');
   const [saving, setSaving] = useState(false);
@@ -40,7 +39,7 @@ export default function CreateProfile() {
       getProfile(id).then((res) => {
         const p = res.data;
         setName(p.name);
-        setAgeBand(p.age_band);
+        setAge(String(p.age));
         setSensitivities(p.sensitivities);
         setCalmingStrategy(p.calming_strategy || '');
         setLoading(false);
@@ -60,7 +59,7 @@ export default function CreateProfile() {
 
     const payload = {
       name,
-      age_band: ageBand,
+      age: parseInt(age),
       sensitivities,
       calming_strategy: calmingStrategy,
     };
@@ -87,8 +86,8 @@ export default function CreateProfile() {
   return (
     <div className="create-profile">
       <header className="form-header">
-        <h1>{isEdit ? 'Edit Profile' : 'Create Child Profile'}</h1>
-        <p className="form-subtitle">Set up sensitivity preferences so SafeScreen can create personalized viewing plans.</p>
+        <h1>{isEdit ? 'Edit Profile' : 'Create Profile'}</h1>
+        <p className="form-subtitle">Set up sensitivity preferences for personalized viewing plans.</p>
       </header>
 
       <form onSubmit={handleSubmit} className="profile-form">
@@ -96,18 +95,12 @@ export default function CreateProfile() {
         <section className="form-section">
           <h2>Basic Info</h2>
           <div className="field">
-            <label htmlFor="name">Child's Name</label>
+            <label htmlFor="name">Name</label>
             <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex" required maxLength={100} />
           </div>
           <div className="field">
-            <label>Age Band</label>
-            <div className="age-band-options">
-              {AGE_BANDS.map((band) => (
-                <button key={band} type="button" className={`age-btn ${ageBand === band ? 'active' : ''}`} onClick={() => setAgeBand(band)}>
-                  {band === '16+' ? '16+' : band} yrs
-                </button>
-              ))}
-            </div>
+            <label htmlFor="age">Age</label>
+            <input id="age" type="number" min={1} max={120} value={age} onChange={(e) => setAge(e.target.value)} placeholder="e.g. 12" required className="age-input" />
           </div>
         </section>
 
@@ -134,7 +127,7 @@ export default function CreateProfile() {
         {/* Calming strategy */}
         <section className="form-section">
           <h2>Calming Strategy</h2>
-          <p className="section-desc">Describe what helps your child calm down during breaks — breathing exercises, looking at cute animals, listening to music, etc.</p>
+          <p className="section-desc">Describe what helps calm you down during breaks — breathing exercises, looking at cute animals, listening to music, etc.</p>
           <div className="field">
             <textarea
               id="calmingStrategy"
@@ -150,7 +143,7 @@ export default function CreateProfile() {
 
         <div className="form-actions">
           <button type="button" className="btn btn-secondary" onClick={() => navigate('/')}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={saving || !name.trim()}>
+          <button type="submit" className="btn btn-primary" disabled={saving || !name.trim() || !age}>
             {saving ? 'Saving...' : isEdit ? 'Update Profile' : 'Create Profile'}
           </button>
         </div>

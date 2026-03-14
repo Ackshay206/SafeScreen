@@ -9,7 +9,7 @@ create extension if not exists "uuid-ossp";
 create table if not exists profiles (
   id               uuid primary key default uuid_generate_v4(),
   name             text not null,
-  age_band         text not null check (age_band in ('4-6','7-9','10-12','13-15','16+')),
+  age              integer not null check (age >= 1 and age <= 120),
   sensitivities    jsonb not null default '{}'::jsonb,
   calming_strategy text not null default '',
   created_at       timestamptz not null default now(),

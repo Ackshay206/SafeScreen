@@ -33,32 +33,24 @@ export default function Home() {
     }
   };
 
-  const ageBandLabel = (band) => {
-    const labels = { '4-6': '4–6 yrs', '7-9': '7–9 yrs', '10-12': '10–12 yrs', '13-15': '13–15 yrs', '16+': '16+ yrs' };
-    return labels[band] || band;
-  };
-
-
-
   if (loading) {
     return <div className="home-loading"><div className="spinner" /><p>Loading profiles...</p></div>;
   }
 
   return (
     <div className="home">
-
       <main className="home-main">
         <section className="profiles-section">
           <div className="section-header">
-            <h2>Child Profiles</h2>
+            <h2>Profiles</h2>
             <Link to="/profiles/new" className="btn btn-primary">+ New Profile</Link>
           </div>
 
           {profiles.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">👶</div>
+              <div className="empty-icon">👤</div>
               <h3>No profiles yet</h3>
-              <p>Create a child profile to get started with personalized viewing plans.</p>
+              <p>Create a profile to get started with personalized viewing plans.</p>
               <Link to="/profiles/new" className="btn btn-primary">Create First Profile</Link>
             </div>
           ) : (
@@ -69,7 +61,7 @@ export default function Home() {
                     <div className="profile-avatar">{profile.name.charAt(0).toUpperCase()}</div>
                     <div className="profile-info">
                       <h3>{profile.name}</h3>
-                      <span className="age-badge">{ageBandLabel(profile.age_band)}</span>
+                      <span className="age-badge">Age {profile.age}</span>
                     </div>
                   </div>
                   {profile.calming_strategy && (
@@ -87,8 +79,6 @@ export default function Home() {
             </div>
           )}
         </section>
-
-
       </main>
     </div>
   );
