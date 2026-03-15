@@ -10,13 +10,13 @@ router = APIRouter(prefix="/api/profiles", tags=["profiles"])
 
 def row_to_response(row: dict) -> ProfileResponse:
     return ProfileResponse(
-        id=row["id"],
-        name=row["name"],
-        age=row["age"],
-        sensitivities=row["sensitivities"],
+        id=str(row["id"]),
+        name=row.get("name", "Unknown"),
+        age_band=row.get("age_band", "unknown"),
+        sensitivities=row.get("sensitivities", {}),
         calming_strategy=row.get("calming_strategy", ""),
-        created_at=row["created_at"],
-        updated_at=row["updated_at"],
+        created_at=str(row.get("created_at", "")),
+        updated_at=str(row.get("updated_at", "")),
     )
 
 
@@ -25,15 +25,15 @@ async def create_profile(profile: ProfileCreate):
     now = datetime.now(timezone.utc).isoformat()
     row = {
         "name": profile.name,
-        "age": profile.age,
+        "age_band": profile.age_band,
         "sensitivities": profile.sensitivities.model_dump(),
         "calming_strategy": profile.calming_strategy,
         "created_at": now,
         "updated_at": now,
     }
     result = supabase.table("profiles").insert(row).execute()
-    if not result.data:
-        raise HTTPException(status_code=500, detail="Failed to create profile")
+    if not result.data or len(result.data) == 0:
+        raise HTTPException(status_code=500, detail="Failed to create profile - no data returned")
     return row_to_response(result.data[0])
 
 
@@ -46,7 +46,7 @@ async def list_profiles():
 @router.get("/{profile_id}", response_model=ProfileResponse)
 async def get_profile(profile_id: str):
     result = supabase.table("profiles").select("*").eq("id", profile_id).execute()
-    if not result.data:
+    if not result.data or len(result.data) == 0:
         raise HTTPException(status_code=404, detail="Profile not found")
     return row_to_response(result.data[0])
 
@@ -67,7 +67,7 @@ async def update_profile(profile_id: str, update: ProfileUpdate):
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     result = supabase.table("profiles").update(update_data).eq("id", profile_id).execute()
-    if not result.data:
+    if not result.data or len(result.data) == 0:
         raise HTTPException(status_code=404, detail="Profile not found")
     return row_to_response(result.data[0])
 

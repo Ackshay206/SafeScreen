@@ -18,7 +18,7 @@ const SENSITIVITY_FIELDS = [
   { key: 'loud_sensory', label: 'Loud / Sensory', icon: '🔊' },
 ];
 
-const TOLERANCE_LABELS = ['Very Low', 'Low', 'Neutral', 'Moderate', 'High'];
+const TOLERANCE_LABELS = ['None', 'Low', 'Moderate', 'High', 'Very High'];
 
 const defaultSensitivities = Object.fromEntries(SENSITIVITY_FIELDS.map((f) => [f.key, 3]));
 
@@ -39,7 +39,7 @@ export default function CreateProfile() {
       getProfile(id).then((res) => {
         const p = res.data;
         setName(p.name);
-        setAge(String(p.age));
+        setAge(String(p.age_band || ''));
         setSensitivities(p.sensitivities);
         setCalmingStrategy(p.calming_strategy || '');
         setLoading(false);
@@ -53,27 +53,65 @@ export default function CreateProfile() {
     setSensitivities((prev) => ({ ...prev, [key]: parseInt(value) }));
   };
 
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
 
     const payload = {
       name,
-      age: parseInt(age),
+      age_band: age,
       sensitivities,
       calming_strategy: calmingStrategy,
     };
 
     try {
+      // 1. Save profile to Supabase as before
       if (isEdit) {
         await updateProfile(id, payload);
       } else {
         await createProfile(payload);
       }
-      navigate('/');
+
+      // 2. Call recommendation API
+      const recResponse = await fetch('http://localhost:8000/api/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          child_name: name,
+          age_band: age + ' yrs',
+          violence: sensitivities.violence,
+          blood: sensitivities.blood_gore,
+          self_harm: sensitivities.self_harm,
+          suicide: sensitivities.suicide,
+          gun_weapon: sensitivities.gun_weapon,
+          abuse: sensitivities.abuse,
+          death_grief: sensitivities.death_grief,
+          sexual_content: sensitivities.sexual_content,
+          bullying: sensitivities.bullying,
+          substance_use: sensitivities.substance_use,
+          flash_seizure: sensitivities.flash_seizure,
+          loud_sensory: sensitivities.loud_sensory,
+          calming_strategy: calmingStrategy,
+          reference_film: null,
+        })
+      });
+
+      const recData = await recResponse.json();
+
+      // 3. Go to recommendations page
+      navigate('/recommendations', {
+        state: {
+          recommendations: recData.recommendations,
+          reference_film: recData.reference_film,
+          child_name: name,
+        }
+      });
+
     } catch (err) {
-      console.error('Failed to save profile', err);
-      alert('Failed to save profile. Please try again.');
+      console.error('Error:', err);
+      alert('Something went wrong. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -104,10 +142,12 @@ export default function CreateProfile() {
           </div>
         </section>
 
+
+
         {/* Sensitivity sliders */}
         <section className="form-section">
           <h2>Sensitivity Sliders</h2>
-          <p className="section-desc">1 = very sensitive (low tolerance) → 5 = not sensitive (high tolerance)</p>
+          <p className="section-desc">1 = not sensitive (high tolerance) → 5 = very sensitive (low tolerance)</p>
           <div className="sliders-grid">
             {SENSITIVITY_FIELDS.map((field) => (
               <div key={field.key} className="slider-row">

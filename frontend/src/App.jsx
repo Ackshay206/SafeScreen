@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import CreateProfile from './pages/CreateProfile';
 import MovieDashboard from './pages/MovieDashboard';
 import MovieDetail from './pages/MovieDetail';
+import Recommendations from './pages/Recommendations';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/profiles/:id/edit" element={<CreateProfile />} />
         <Route path="/movies" element={<MovieDashboard />} />
         <Route path="/movies/:id" element={<MovieDetail />} />
+        <Route path="/recommendations" element={<Recommendations />} />
       </Routes>
     </BrowserRouter>
   );
