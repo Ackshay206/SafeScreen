@@ -10,13 +10,13 @@ router = APIRouter(prefix="/api/profiles", tags=["profiles"])
 
 def row_to_response(row: dict) -> ProfileResponse:
     return ProfileResponse(
-        id=row["id"],
-        name=row["name"],
-        age=row["age"],
-        sensitivities=row["sensitivities"],
+        id=str(row["id"]),
+        name=row.get("name", "Unknown"),
+        age_band=row.get("age_band", "unknown"),
+        sensitivities=row.get("sensitivities", {}),
         calming_strategy=row.get("calming_strategy", ""),
-        created_at=row["created_at"],
-        updated_at=row["updated_at"],
+        created_at=str(row.get("created_at", "")),
+        updated_at=str(row.get("updated_at", "")),
     )
 
 
@@ -25,7 +25,7 @@ async def create_profile(profile: ProfileCreate):
     now = datetime.now(timezone.utc).isoformat()
     row = {
         "name": profile.name,
-        "age": profile.age,
+        "age_band": profile.age_band,
         "sensitivities": profile.sensitivities.model_dump(),
         "calming_strategy": profile.calming_strategy,
         "created_at": now,

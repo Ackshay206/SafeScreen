@@ -36,7 +36,7 @@ class ChildProfile(BaseModel):
     calming_strategy: Optional[str] = None
 
     # Optional reference movie (the movie they are about to watch)
-    reference_title : Optional[str] = None
+    reference_film  : Optional[str] = None
     reference_year  : Optional[int] = None
 
 
@@ -73,7 +73,7 @@ async def recommend_movies(profile: ChildProfile):
     result = get_recommendations(
         profile          = sensitivity,
         age_band         = profile.age_band,
-        reference_title  = profile.reference_title,
+        reference_title  = profile.reference_film,
         reference_year   = profile.reference_year,
     )
 

@@ -39,7 +39,7 @@ export default function CreateProfile() {
       getProfile(id).then((res) => {
         const p = res.data;
         setName(p.name);
-        setAge(String(p.age));
+        setAge(String(p.age_band || ''));
         setSensitivities(p.sensitivities);
         setCalmingStrategy(p.calming_strategy || '');
         setLoading(false);
@@ -61,7 +61,7 @@ export default function CreateProfile() {
 
     const payload = {
       name,
-      age: parseInt(age),
+      age_band: age,
       sensitivities,
       calming_strategy: calmingStrategy,
     };
@@ -80,7 +80,7 @@ export default function CreateProfile() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           child_name: name,
-          age_band: ageBand + ' yrs',
+          age_band: age + ' yrs',
           violence: sensitivities.violence,
           blood: sensitivities.blood_gore,
           self_harm: sensitivities.self_harm,
@@ -94,7 +94,7 @@ export default function CreateProfile() {
           flash_seizure: sensitivities.flash_seizure,
           loud_sensory: sensitivities.loud_sensory,
           calming_strategy: calmingStrategy,
-          reference_title: null,
+          reference_film: null,
         })
       });
 
