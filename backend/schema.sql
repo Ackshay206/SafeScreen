@@ -12,6 +12,7 @@ create table if not exists profiles (
   age              integer not null check (age >= 1 and age <= 120),
   sensitivities    jsonb not null default '{}'::jsonb,
   calming_strategy text not null default '',
+  additional_details text not null default '',
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now()
 );

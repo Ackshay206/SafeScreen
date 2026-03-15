@@ -2,19 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 
 
-class SegmentFlags(BaseModel):
-    violence: int = Field(0, ge=0, le=5)
-    blood_gore: int = Field(0, ge=0, le=5)
-    self_harm: int = Field(0, ge=0, le=5)
-    suicide: int = Field(0, ge=0, le=5)
-    gun_weapon: int = Field(0, ge=0, le=5)
-    abuse: int = Field(0, ge=0, le=5)
-    death_grief: int = Field(0, ge=0, le=5)
-    sexual_content: int = Field(0, ge=0, le=5)
-    bullying: int = Field(0, ge=0, le=5)
-    substance_use: int = Field(0, ge=0, le=5)
-    flash_seizure: int = Field(0, ge=0, le=5)
-    loud_sensory: int = Field(0, ge=0, le=5)
+# Removed SegmentFlags, segments now just use a list of strings
 
 
 class Segment(BaseModel):
@@ -22,7 +10,7 @@ class Segment(BaseModel):
     start_time: str
     end_time: str
     summary: str
-    flags: SegmentFlags
+    flags: List[str] = Field(default_factory=list)
 
 
 class OverallFlags(BaseModel):

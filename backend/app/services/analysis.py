@@ -1,17 +1,19 @@
 """
-Content analysis service — uses GPT to analyze transcripts
+Content analysis service — uses Gemini 2.5 Flash to analyze transcripts
 and identify real scene boundaries with exact timestamps,
 generate safety flags per scene, and create plain-language summaries.
 """
+import os
 import json
 from datetime import datetime, timezone
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
-from app.config import OPENAI_API_KEY
 from app.database import supabase
 from app.services.srt_parser import parse_srt, chunk_transcript
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 CONTENT_FLAGS = [
     "violence", "blood_gore", "self_harm", "suicide", "gun_weapon", "abuse",
@@ -25,8 +27,9 @@ Identify the distinct SCENES in this transcript portion. For each scene, provide
 1. The EXACT start timestamp (HH:MM:SS) from the subtitle entries
 2. The EXACT end timestamp (HH:MM:SS) from the subtitle entries
 3. A 1-2 sentence summary of what happens
-4. Content flag ratings (0-5 scale):
-   0 = not present, 1 = barely implied, 2 = mildly present, 3 = moderate, 4 = strong, 5 = extremely intense/graphic
+4. An array of content flag names that are present in this scene. Only include flags that are actually triggered. If the scene is clean, return an empty array.
+
+The possible flags are: violence, blood_gore, self_harm, suicide, gun_weapon, abuse, death_grief, sexual_content, bullying, substance_use, flash_seizure, loud_sensory
 
 A "scene" is a distinct narrative unit — a change in location, action, mood, or topic. Combine very short exchanges into one scene. Aim for 2-5 scenes per chunk. Use the EXACT timestamps you see in the transcript.
 
@@ -42,11 +45,7 @@ Respond with ONLY valid JSON in this exact format (no markdown, no code fences):
       "start_time": "HH:MM:SS",
       "end_time": "HH:MM:SS",
       "summary": "What happens in this scene",
-      "flags": {{
-        "violence": 0, "blood_gore": 0, "self_harm": 0, "suicide": 0,
-        "gun_weapon": 0, "abuse": 0, "death_grief": 0, "sexual_content": 0,
-        "bullying": 0, "substance_use": 0, "flash_seizure": 0, "loud_sensory": 0
-      }}
+      "flags": ["violence", "gun_weapon"]
     }}
   ]
 }}"""
@@ -56,7 +55,7 @@ SUMMARY_PROMPT = """You are a media-safety content analyst. Based on this movie'
 MOVIE: {title} ({year}) — Rated {mpaa_rating}
 SYNOPSIS: {synopsis}
 
-OVERALL FLAGS (none/mild/moderate/intense):
+OVERALL FLAGS (present in movie):
 {flags_text}
 
 SCENE SUMMARIES:
@@ -66,7 +65,7 @@ Write the summary as a clear, helpful paragraph for parents. No JSON — just th
 
 
 def _format_srt_with_timestamps(entries, start_idx: int, end_idx: int, max_chars: int = 8000) -> str:
-    """Format SRT entries with their timestamps for GPT, within a character limit."""
+    """Format SRT entries with their timestamps for the LLM, within a character limit."""
     lines = []
     total = 0
     for entry in entries[start_idx:end_idx]:
@@ -83,26 +82,16 @@ def _format_srt_with_timestamps(entries, start_idx: int, end_idx: int, max_chars
     return "\n".join(lines)
 
 
-def _intensity_to_severity(max_val: int) -> str:
-    """Convert max intensity value (0-5) → severity string."""
-    if max_val == 0:
-        return "none"
-    elif max_val <= 2:
-        return "mild"
-    elif max_val <= 3:
-        return "moderate"
-    else:
-        return "intense"
-
-
-def _parse_gpt_json(content: str) -> dict | None:
-    """Parse GPT response as JSON, stripping markdown fences if present."""
+def _parse_llm_json(content: str) -> dict | None:
+    """Parse LLM response as JSON, stripping markdown fences if present."""
     content = content.strip()
-    if content.startswith("```"):
+    if content.startswith("```json"):
+        content = content[7:]
+    elif content.startswith("```"):
         content = content.split("\n", 1)[1] if "\n" in content else content[3:]
-        if content.endswith("```"):
-            content = content[:-3]
-        content = content.strip()
+    if content.endswith("```"):
+        content = content[:-3]
+    content = content.strip()
     try:
         return json.loads(content)
     except json.JSONDecodeError:
@@ -110,19 +99,20 @@ def _parse_gpt_json(content: str) -> dict | None:
 
 
 async def detect_scenes_in_chunk(title: str, entries, start_idx: int, end_idx: int) -> list[dict]:
-    """Send a chunk of timestamped transcript to GPT to identify real scenes."""
+    """Send a chunk of timestamped transcript to Gemini to identify real scenes."""
     text = _format_srt_with_timestamps(entries, start_idx, end_idx)
 
     prompt = SCENE_DETECTION_PROMPT.format(title=title, text=text)
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-        max_tokens=2000,
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[{"role": "user", "parts": [{"text": prompt}]}],
+        config=types.GenerateContentConfig(
+            temperature=0.3,
+        )
     )
 
-    result = _parse_gpt_json(response.choices[0].message.content)
+    result = _parse_llm_json(response.text)
     if not result or "scenes" not in result:
         return []
 
@@ -130,14 +120,19 @@ async def detect_scenes_in_chunk(title: str, entries, start_idx: int, end_idx: i
 
 
 def aggregate_overall_flags(segments: list[dict]) -> dict:
-    """Aggregate segment-level flags into overall movie flags."""
-    overall = {}
-    for flag in CONTENT_FLAGS:
-        max_intensity = max(
-            (seg["flags"].get(flag, 0) for seg in segments), default=0
-        )
-        overall[flag] = _intensity_to_severity(max_intensity)
-    return overall
+    """
+    Aggregate segment-level flags into overall movie flags.
+    A flag is "flagged" if ANY segment contains it, otherwise "none".
+    """
+    overall = {flag: False for flag in CONTENT_FLAGS}
+    for seg in segments:
+        seg_flags = seg.get("flags", [])
+        if isinstance(seg_flags, dict):
+            seg_flags = [k for k, v in seg_flags.items() if v and v != "none" and v != 0]
+        for flag in seg_flags:
+            if flag in overall:
+                overall[flag] = True
+    return {flag: ("flagged" if present else "none") for flag, present in overall.items()}
 
 
 async def analyze_movie(movie_id: str) -> dict:
@@ -145,7 +140,7 @@ async def analyze_movie(movie_id: str) -> dict:
     Full analysis pipeline:
     1. Fetch movie + transcript from Supabase
     2. Parse SRT entries
-    3. Send transcript in chunks to GPT for scene detection with exact timestamps
+    3. Send transcript in chunks to Gemini for scene detection with exact timestamps
     4. Aggregate overall flags
     5. Generate plain-language summary
     6. Update Supabase
@@ -183,15 +178,24 @@ async def analyze_movie(movie_id: str) -> dict:
         scenes = await detect_scenes_in_chunk(movie["title"], entries, i, end_i)
         all_scenes.extend(scenes)
 
-    # Number the segments sequentially
+    # Number the segments sequentially and normalize flags to arrays
     segments = []
     for idx, scene in enumerate(all_scenes, 1):
+        raw_flags = scene.get("flags", [])
+        # Normalize: always produce a clean list of valid flag names
+        if isinstance(raw_flags, dict):
+            normalized = [k for k, v in raw_flags.items() if k in CONTENT_FLAGS and v and v != "none" and v != 0]
+        elif isinstance(raw_flags, list):
+            normalized = [f for f in raw_flags if f in CONTENT_FLAGS]
+        else:
+            normalized = []
+
         segments.append({
             "segment_id": idx,
             "start_time": scene.get("start_time", "00:00:00"),
             "end_time": scene.get("end_time", "00:00:00"),
             "summary": scene.get("summary", ""),
-            "flags": scene.get("flags", {flag: 0 for flag in CONTENT_FLAGS}),
+            "flags": normalized,
         })
 
     print(f"  🎬 Detected {len(segments)} scenes total")
@@ -201,9 +205,11 @@ async def analyze_movie(movie_id: str) -> dict:
     print(f"  🏷️  Overall flags: {overall_flags}")
 
     # 5. Generate plain-language summary
-    flags_text = "\n".join(f"  {flag}: {severity}" for flag, severity in overall_flags.items())
+    active_flags = [k for k, v in overall_flags.items() if v != "none"]
+    flags_text = ", ".join(active_flags) if active_flags else "None — clean movie"
     segment_summaries = "\n".join(
-        f"  [{s['start_time']}–{s['end_time']}] {s['summary']}" for s in segments
+        f"  [{s['start_time']}–{s['end_time']}] {s['summary']} (Flags: {', '.join(s['flags']) if s['flags'] else 'none'})"
+        for s in segments
     )
 
     summary_prompt = SUMMARY_PROMPT.format(
@@ -215,13 +221,14 @@ async def analyze_movie(movie_id: str) -> dict:
         segment_summaries=segment_summaries,
     )
 
-    summary_response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": summary_prompt}],
-        temperature=0.4,
-        max_tokens=400,
+    summary_response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[{"role": "user", "parts": [{"text": summary_prompt}]}],
+        config=types.GenerateContentConfig(
+            temperature=0.4,
+        )
     )
-    plain_summary = summary_response.choices[0].message.content.strip()
+    plain_summary = summary_response.text.strip()
     print(f"  📋 Summary generated ({len(plain_summary)} chars)")
 
     # 6. Update Supabase

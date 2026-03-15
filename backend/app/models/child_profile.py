@@ -19,23 +19,26 @@ class Sensitivities(BaseModel):
 
 class ProfileCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    age_band: str = Field(..., min_length=1, max_length=20)
+    age: int = Field(..., ge=1, le=120)
     sensitivities: Sensitivities
     calming_strategy: str = Field("", max_length=500)
+    additional_details: str = Field("", max_length=2000)
 
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    age_band: Optional[str] = Field(None, min_length=1, max_length=20)
+    age: Optional[int] = Field(None, ge=1, le=120)
     sensitivities: Optional[Sensitivities] = None
     calming_strategy: Optional[str] = Field(None, max_length=500)
+    additional_details: Optional[str] = Field(None, max_length=2000)
 
 
 class ProfileResponse(BaseModel):
     id: str
     name: str
-    age_band: str
+    age: int
     sensitivities: Sensitivities
     calming_strategy: str
+    additional_details: str
     created_at: str
     updated_at: str
