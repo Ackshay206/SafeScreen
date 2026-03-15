@@ -11,12 +11,12 @@ export default function App() {
     <BrowserRouter>
       <Navbar />
       <Routes>
-        <Route path="/"                      element={<Home />} />
-        <Route path="/profiles/new"          element={<CreateProfile />} />
-        <Route path="/profiles/:id/edit"     element={<CreateProfile />} />
-        <Route path="/movies"                element={<MovieDashboard />} />
-        <Route path="/movies/:id"            element={<MovieDetail />} />
-        <Route path="/recommendations"       element={<Recommendations />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/profiles/new" element={<CreateProfile />} />
+        <Route path="/profiles/:id/edit" element={<CreateProfile />} />
+        <Route path="/movies" element={<MovieDashboard />} />
+        <Route path="/movies/:id" element={<MovieDetail />} />
+        <Route path="/recommendations" element={<Recommendations />} />
       </Routes>
     </BrowserRouter>
   );
