@@ -53,6 +53,8 @@ export default function CreateProfile() {
     setSensitivities((prev) => ({ ...prev, [key]: parseInt(value) }));
   };
 
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -65,15 +67,51 @@ export default function CreateProfile() {
     };
 
     try {
+      // 1. Save profile to Supabase as before
       if (isEdit) {
         await updateProfile(id, payload);
       } else {
         await createProfile(payload);
       }
-      navigate('/');
+
+      // 2. Call recommendation API
+      const recResponse = await fetch('http://localhost:8000/api/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          child_name: name,
+          age_band: ageBand + ' yrs',
+          violence: sensitivities.violence,
+          blood: sensitivities.blood_gore,
+          self_harm: sensitivities.self_harm,
+          suicide: sensitivities.suicide,
+          gun_weapon: sensitivities.gun_weapon,
+          abuse: sensitivities.abuse,
+          death_grief: sensitivities.death_grief,
+          sexual_content: sensitivities.sexual_content,
+          bullying: sensitivities.bullying,
+          substance_use: sensitivities.substance_use,
+          flash_seizure: sensitivities.flash_seizure,
+          loud_sensory: sensitivities.loud_sensory,
+          calming_strategy: calmingStrategy,
+          reference_title: null,
+        })
+      });
+
+      const recData = await recResponse.json();
+
+      // 3. Go to recommendations page
+      navigate('/recommendations', {
+        state: {
+          recommendations: recData.recommendations,
+          reference_film: recData.reference_film,
+          child_name: name,
+        }
+      });
+
     } catch (err) {
-      console.error('Failed to save profile', err);
-      alert('Failed to save profile. Please try again.');
+      console.error('Error:', err);
+      alert('Something went wrong. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -103,6 +141,8 @@ export default function CreateProfile() {
             <input id="age" type="number" min={1} max={120} value={age} onChange={(e) => setAge(e.target.value)} placeholder="e.g. 12" required className="age-input" />
           </div>
         </section>
+
+
 
         {/* Sensitivity sliders */}
         <section className="form-section">
