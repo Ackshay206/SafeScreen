@@ -32,8 +32,8 @@ async def create_profile(profile: ProfileCreate):
         "updated_at": now,
     }
     result = supabase.table("profiles").insert(row).execute()
-    if not result.data:
-        raise HTTPException(status_code=500, detail="Failed to create profile")
+    if not result.data or len(result.data) == 0:
+        raise HTTPException(status_code=500, detail="Failed to create profile - no data returned")
     return row_to_response(result.data[0])
 
 
@@ -46,7 +46,7 @@ async def list_profiles():
 @router.get("/{profile_id}", response_model=ProfileResponse)
 async def get_profile(profile_id: str):
     result = supabase.table("profiles").select("*").eq("id", profile_id).execute()
-    if not result.data:
+    if not result.data or len(result.data) == 0:
         raise HTTPException(status_code=404, detail="Profile not found")
     return row_to_response(result.data[0])
 
@@ -67,7 +67,7 @@ async def update_profile(profile_id: str, update: ProfileUpdate):
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     result = supabase.table("profiles").update(update_data).eq("id", profile_id).execute()
-    if not result.data:
+    if not result.data or len(result.data) == 0:
         raise HTTPException(status_code=404, detail="Profile not found")
     return row_to_response(result.data[0])
 

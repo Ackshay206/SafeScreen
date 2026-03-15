@@ -93,7 +93,7 @@ def _fetch_all_movies() -> list[dict]:
 
 
 def _movie_passes_filter(movie: dict, sensitivity: dict) -> tuple[bool, list[str]]:
-    overall_flags = movie.get("overall_flags") or {}
+    overall_flags: dict = movie.get("overall_flags") or {}
     failed = []
 
     for slider_key, user_rating in sensitivity.items():
@@ -102,8 +102,8 @@ def _movie_passes_filter(movie: dict, sensitivity: dict) -> tuple[bool, list[str
         flag_key = SLIDER_TO_FLAG.get(slider_key)
         if not flag_key:
             continue
-        severity_str = overall_flags.get(flag_key, "none")
-        movie_score  = SEVERITY_TO_SCORE.get(severity_str, 0)
+        severity_str = str(overall_flags.get(flag_key, "none"))
+        movie_score  = SEVERITY_TO_SCORE.get(severity_str.lower(), 0)
         max_allowed  = SLIDER_TO_MAX_SCORE.get(int(user_rating), 2)
         if movie_score > max_allowed:
             failed.append(flag_key)
@@ -155,13 +155,13 @@ def _build_openai_prompt(sensitivity, candidates, reference_title=None, age_band
     )
     age_str = f"User age: {age_band}" if age_band else ""
     
-    candidate_lines = []
+    candidate_lines: list[str] = []
     for m in candidates:
-        flags = m.get("overall_flags") or {}
-        flag_summary = ", ".join([f"{k.replace('_', ' ')}: {v.upper()}" for k, v in flags.items() if v != "none"]) or "CLEAN"
-        synopsis = m.get("synopsis", "No synopsis.")[:150] + "..."
+        flags: dict = m.get("overall_flags") or {}
+        flag_summary = ", ".join([f"{str(k).replace('_', ' ')}: {str(v).upper()}" for k, v in flags.items() if v != "none"]) or "CLEAN"
+        synopsis = str(m.get("synopsis", "No synopsis."))[:150] + "..."
         candidate_lines.append(
-            f"- {m['title']} ({m.get('year','?')}) | Rated: {m.get('mpaa_rating','?')} | Intensities: [{flag_summary}] | Synopsis: {synopsis}"
+            f"- {str(m['title'])} ({m.get('year','?')}) | Rated: {m.get('mpaa_rating','?')} | Intensities: [{flag_summary}] | Synopsis: {synopsis}"
         )
         
     return (
@@ -285,7 +285,7 @@ def get_recommendations(profile, age_band=None, reference_title=None, reference_
             recs.extend(_fallback_recommendations(extras, n=3 - len(recs)))
 
         return {
-            "recommendations": recs[:3],
+            "recommendations": recs[0:3],
             "candidates_count": len(eligible),
             "reference_film": reference_title,
             "mode": "openai_gpt4o"
