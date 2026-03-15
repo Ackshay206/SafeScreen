@@ -21,29 +21,41 @@ import os
 import json
 
 try:
-    from groq import Groq
-    groq_available = True
+    from openai import OpenAI
+    openai_available = True
 except ImportError:
-    groq_available = False
-    print("WARNING: groq not installed. Run: pip install groq")
+    openai_available = False
+    print("WARNING: openai not installed. Run: pip install openai")
 
 from app.database import supabase
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL   = "llama-3.3-70b-versatile"
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_MODEL   = "gpt-4o"
 
-if groq_available and GROQ_API_KEY:
-    groq_client = Groq(api_key=GROQ_API_KEY)
-    print("Groq client initialised.")
+if openai_available and OPENAI_API_KEY:
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    print("OpenAI client initialised.")
 else:
-    groq_client = None
-    if not GROQ_API_KEY:
-        print("WARNING: GROQ_API_KEY not set. Using fallback mode.")
+    openai_client = None
+    if not OPENAI_API_KEY:
+        print("WARNING: OPENAI_API_KEY not set. Using fallback mode.")
 
 
 # ── sensitivity mapping ──
+# Intensity Scale in movies: none=0, mild=2, moderate=3, intense=5
 SEVERITY_TO_SCORE  = {"none": 0, "mild": 2, "moderate": 3, "intense": 5}
-SLIDER_TO_MAX_SCORE = {1: 0, 2: 1, 3: 2, 4: 3, 5: 5}
+
+# User Sensitivity Scale: 1 (Not Sensitive) ⮕ 5 (Very Sensitive)
+# Intensity Scale in movies: none=0, mild=2, moderate=3, intense=5
+# For a movie to be "Hard Blocked," it must be significantly over the limit.
+# For adults, we allow more through to let the LLM decide.
+SLIDER_TO_MAX_SCORE = {
+    1: 5,  # Not sensitive: Allow up to Intense (5)
+    2: 5,  # Low: Allow up to Intense (5)
+    3: 5,  # Moderate: Allow up to Intense (5) for adults (LLM will deprioritize)
+    4: 3,  # High: Only up to Moderate (3)
+    5: 2,  # Very high: Only up to Mild (2)
+}
 
 SLIDER_TO_FLAG = {
     "violence"      : "violence",
@@ -64,7 +76,7 @@ SLIDER_TO_FLAG = {
 def _fetch_analyzed_movies() -> list[dict]:
     result = (
         supabase.table("movies")
-        .select("id, title, year, genre, mpaa_rating, synopsis, overall_flags")
+        .select("id, title, year, genre, mpaa_rating, synopsis, overall_flags, segments")
         .not_.is_("overall_flags", "null")
         .execute()
     )
@@ -74,7 +86,7 @@ def _fetch_analyzed_movies() -> list[dict]:
 def _fetch_all_movies() -> list[dict]:
     result = (
         supabase.table("movies")
-        .select("id, title, year, genre, mpaa_rating, synopsis, overall_flags")
+        .select("id, title, year, genre, mpaa_rating, synopsis, overall_flags, segments")
         .execute()
     )
     return result.data or []
@@ -100,19 +112,19 @@ def _movie_passes_filter(movie: dict, sensitivity: dict) -> tuple[bool, list[str
 
 
 SYSTEM_PROMPT = """
-You are a child-safe movie recommendation specialist.
-You receive a child sensitivity profile and a pre-filtered list
-of candidate movies — ALL already verified safe for this child.
+You are a highly capable movie recommendation specialist.
+You receive a user profile (age, sensitivity levels) and a list of candidate movies.
+Each movie includes its "Content Intensities" (None, Mild, Moderate, Intense).
 
-Rank the top 3 by suitability. Consider age-appropriateness,
-tone, and similarity to the reference movie if provided.
+### YOUR CORE MISSION:
+Rank the top 3 recommendations. You must prioritize EXTREME safety for any trigger the user is "Sensitive" to (Sensitivity 4 or 5).
 
-RULES:
-- Only recommend movies from the candidate list — never invent titles
-- Do not recommend the reference movie itself
-- Do not add sensitivity warnings — all movies are already safe
+### RANKING RULES:
+1. **Zero Tolerance for High Sensitivity**: If a user has Sensitivity 4 or 5 for a category (e.g., Bullying), you MUST prioritize movies that have "NONE" in that category over those with "MILD". Only recommend a "MILD" movie if no "NONE" options remain in the pool.
+2. **Adult Relevance**: For users 18+, aim for high-quality, iconic cinema (like 'Alien', 'The Lion King', 'Zootopia') rather than just preschool content, provided they pass the safety check.
+3. **Reasoning**: Your reason must explain how the movie respects their specific sensitive triggers.
 
-Return ONLY valid JSON, no markdown:
+Return ONLY valid JSON:
 {
   "recommendations": [
     {
@@ -121,36 +133,45 @@ Return ONLY valid JSON, no markdown:
       "year": <year>,
       "genres": "<genres>",
       "similarity_score": <0.0-1.0>,
-      "reason": "<one sentence why this suits this child>"
+      "reason": "<Tailored explanation focusing on their HIGH SENSITIVITY triggers.>"
     }
   ]
 }
 """
 
 
-def _build_groq_prompt(sensitivity, candidates, reference_title=None, age_band=None):
+def _build_openai_prompt(sensitivity, candidates, reference_title=None, age_band=None):
+    # Highlight high-sensitivity triggers for the LLM
+    high_sens = [k.replace('_', ' ').title() for k, v in sensitivity.items() if v and int(v) >= 4]
+    sens_warning = f"CRITICAL: User is highly sensitive to: {', '.join(high_sens)}" if high_sens else ""
+
     profile_lines = "\n".join([
         f"  {k.replace('_', ' ').title()}: {v}/5"
         for k, v in sensitivity.items() if v is not None
     ])
     ref_str = (
-        f"Reference movie (about to watch): {reference_title}"
+        f"Reference movie: {reference_title}"
         if reference_title else "No reference movie."
     )
-    age_str = f"Child age band: {age_band}" if age_band else ""
+    age_str = f"User age: {age_band}" if age_band else ""
+    
     candidate_lines = []
     for m in candidates:
         flags = m.get("overall_flags") or {}
-        flag_summary = ", ".join([f"{k}:{v}" for k, v in flags.items() if v != "none"]) or "clean"
+        flag_summary = ", ".join([f"{k.replace('_', ' ')}: {v.upper()}" for k, v in flags.items() if v != "none"]) or "CLEAN"
+        synopsis = m.get("synopsis", "No synopsis.")[:150] + "..."
         candidate_lines.append(
-            f"- {m['title']} ({m.get('year','?')}) | "f"Genres: {m.get('genre','?')} | Rated: {m.get('mpaa_rating','?')} | Flags: {flag_summary}"
+            f"- {m['title']} ({m.get('year','?')}) | Rated: {m.get('mpaa_rating','?')} | Intensities: [{flag_summary}] | Synopsis: {synopsis}"
         )
+        
     return (
-        f"Child profile (1=very sensitive, 5=not sensitive):\n{profile_lines}\n\n"
-        f"{age_str}\n{ref_str}\n\n"
-        f"Safe candidates ({len(candidates)} movies, all constraint-verified):\n"
+        f"{sens_warning}\n"
+        f"User Age: {age_str}\n"
+        f"User Sensitivity Profile (1=Not Sensitive, 5=Very Sensitive):\n{profile_lines}\n\n"
+        f"{ref_str}\n\n"
+        f"Safe candidates ({len(candidates)} movies):\n"
         + "\n".join(candidate_lines)
-        + "\n\nPick top 3. Return JSON only."
+        + "\n\nSelect top 3. JSON only."
     )
 
 
@@ -189,8 +210,25 @@ def get_recommendations(profile, age_band=None, reference_title=None, reference_
     for movie in movies:
         if reference_title and movie["title"].lower() == reference_title.lower():
             continue
+            
+        is_adult = False
+        try:
+            # Simple check for adult age bands or explicit age
+            if age_band and (str(age_band).lower() in ["18+", "adult"] or int(age_band) >= 18):
+                is_adult = True
+        except:
+            pass
+
         passes, failed = _movie_passes_filter(movie, profile)
-        if passes:
+        
+        # 1. Hard Rating Block: Block R for under 18s
+        rating = (movie.get("mpaa_rating") or "").upper()
+        if not is_adult and rating == "R":
+            eliminated.append({"title": movie["title"], "failed": ["AGE_RESTRICTED_R"]})
+            continue
+
+        # 2. Logic: If adult, we are much more permissive in the "Hard Filter" phase
+        if passes or (is_adult and len(failed) <= 2):
             eligible.append(movie)
         else:
             eliminated.append({"title": movie["title"], "failed": failed})
@@ -203,19 +241,19 @@ def get_recommendations(profile, age_band=None, reference_title=None, reference_
             "recommendations": [], "mode": "no_results", "eliminated": eliminated
         }
 
-    # Groq ranking
-    if groq_client is None:
+    # OpenAI ranking
+    if openai_client is None:
         return {
             "recommendations": _fallback_recommendations(eligible),
             "candidates_count": len(eligible),
             "reference_film": reference_title,
-            "mode": "fallback_no_groq"
+            "mode": "fallback_no_openai"
         }
 
     try:
-        prompt   = _build_groq_prompt(profile, eligible, reference_title, age_band)
-        response = groq_client.chat.completions.create(
-            model           = GROQ_MODEL,
+        prompt   = _build_openai_prompt(profile, eligible, reference_title, age_band)
+        response = openai_client.chat.completions.create(
+            model           = OPENAI_MODEL,
             messages        = [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": prompt}
@@ -250,14 +288,14 @@ def get_recommendations(profile, age_band=None, reference_title=None, reference_
             "recommendations": recs[:3],
             "candidates_count": len(eligible),
             "reference_film": reference_title,
-            "mode": "groq_llama3"
+            "mode": "openai_gpt4o"
         }
 
     except Exception as e:
-        print(f"Groq error: {e}")
+        print(f"OpenAI error: {e}")
         return {
             "recommendations": _fallback_recommendations(eligible),
             "candidates_count": len(eligible),
             "reference_film": reference_title,
-            "mode": "fallback_groq_error"
-        }
+            "mode": "fallback_openai_error"
+        }

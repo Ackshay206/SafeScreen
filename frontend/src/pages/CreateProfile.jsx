@@ -18,7 +18,7 @@ const SENSITIVITY_FIELDS = [
   { key: 'loud_sensory', label: 'Loud / Sensory', icon: '🔊' },
 ];
 
-const TOLERANCE_LABELS = ['Very Low', 'Low', 'Neutral', 'Moderate', 'High'];
+const TOLERANCE_LABELS = ['None', 'Low', 'Moderate', 'High', 'Very High'];
 
 const defaultSensitivities = Object.fromEntries(SENSITIVITY_FIELDS.map((f) => [f.key, 3]));
 
@@ -147,7 +147,7 @@ export default function CreateProfile() {
         {/* Sensitivity sliders */}
         <section className="form-section">
           <h2>Sensitivity Sliders</h2>
-          <p className="section-desc">1 = very sensitive (low tolerance) → 5 = not sensitive (high tolerance)</p>
+          <p className="section-desc">1 = not sensitive (high tolerance) → 5 = very sensitive (low tolerance)</p>
           <div className="sliders-grid">
             {SENSITIVITY_FIELDS.map((field) => (
               <div key={field.key} className="slider-row">
