@@ -57,7 +57,11 @@ export default function Home() {
             <div className="profile-grid">
               {profiles.map((profile) => (
                 <div key={profile.id} className="profile-card">
-                  <div className="profile-card-header">
+                  <div 
+                    className="profile-card-header" 
+                    onClick={() => navigate(`/profiles/${profile.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="profile-avatar">{profile.name.charAt(0).toUpperCase()}</div>
                     <div className="profile-info">
                       <h3>{profile.name}</h3>

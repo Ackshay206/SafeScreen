@@ -2,13 +2,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
 /* ── palette ── */
-const ACCENT  = '#6C63FF';
-const ACCENT2 = '#A78BFA';
-const DARK    = '#0F0E17';
-const CARD_BG = '#1A1929';
-const SURFACE = '#231F3A';
-const TEXT     = '#EDE9FE';
-const MUTED    = '#9CA3AF';
+const ACCENT  = '#4f46e5';
+const ACCENT2 = '#8b5cf6';
+const DARK    = '#f8fafc';
+const CARD_BG = '#ffffff';
+const SURFACE = '#f1f5f9';
+const TEXT    = '#0f172a';
+const MUTED   = '#64748b';
 
 /* ── score ring ── */
 function ScoreRing({ score }) {
@@ -46,7 +46,8 @@ function HeroCard({ rec, index }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => { const t = setTimeout(() => setVisible(true), index * 120); return () => clearTimeout(t); }, [index]);
 
-  const genres = (rec.genres || rec.genre || '').split(/,\s*/).filter(Boolean);
+  const rawGenres = rec.genres || rec.genre || '';
+  const genres = Array.isArray(rawGenres) ? rawGenres : rawGenres.split(/,\s*/).filter(Boolean);
 
   return (
     <div style={{
@@ -54,11 +55,11 @@ function HeroCard({ rec, index }) {
       transform: visible ? 'translateY(0)' : 'translateY(20px)',
       transition: 'opacity 0.5s ease, transform 0.5s ease',
       background: index === 0
-        ? `linear-gradient(135deg, ${CARD_BG} 0%, #1e1438 100%)`
+        ? `linear-gradient(135deg, ${CARD_BG} 0%, #f1f5f9 100%)`
         : CARD_BG,
       borderRadius: 20,
       padding: index === 0 ? '2rem' : '1.4rem 1.6rem',
-      border: index === 0 ? `1.5px solid ${ACCENT}55` : `1px solid #2e2a48`,
+      border: index === 0 ? `1.5px solid ${ACCENT}55` : `1px solid #e2e8f0`,
       boxShadow: index === 0 ? `0 0 40px ${ACCENT}22` : 'none',
       position: 'relative',
       overflow: 'hidden',
@@ -70,7 +71,7 @@ function HeroCard({ rec, index }) {
           padding: '6px 18px',
           borderBottomLeftRadius: 14,
           fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em',
-          color: '#fff',
+          color: '#ffffff',
         }}>
           TOP PICK
         </div>
@@ -112,13 +113,13 @@ function HeroCard({ rec, index }) {
             ))}
             {rec.mpaa_rating && (
               <span style={{
-                background: '#ffffff10',
+                background: SURFACE,
                 color: MUTED,
                 padding: '3px 10px',
                 borderRadius: 99,
                 fontSize: '0.72rem',
                 fontWeight: 600,
-                border: '1px solid #ffffff18',
+                border: `1px solid #e2e8f0`,
               }}>{rec.mpaa_rating}</span>
             )}
           </div>
@@ -133,9 +134,9 @@ function HeroCard({ rec, index }) {
         <p style={{
           margin: 0,
           fontSize: '0.875rem',
-          color: index === 0 ? '#c4b8f0' : MUTED,
+          color: index === 0 ? '#4338ca' : MUTED,
           lineHeight: 1.6,
-          borderTop: `1px solid #ffffff10`,
+          borderTop: `1px solid #e2e8f0`,
           paddingTop: '0.85rem',
           marginTop: '0.25rem',
         }}>
@@ -246,7 +247,7 @@ export default function Recommendations() {
         {!top && (
           <div style={{
             background: CARD_BG, borderRadius: 16,
-            padding: '2rem', textAlign: 'center', border: '1px solid #2e2a48',
+            padding: '2rem', textAlign: 'center', border: '1px solid #e2e8f0',
           }}>
             <p style={{ color: MUTED, margin: 0 }}>
               No movies matched this profile's sensitivity settings yet. More will appear once the full library is analyzed.
@@ -285,7 +286,7 @@ const primaryBtn = {
 const ghostBtn = {
   padding: '11px 24px',
   borderRadius: 10,
-  border: '1px solid #2e2a48',
+  border: '1px solid #e2e8f0',
   background: 'transparent',
   color: TEXT,
   cursor: 'pointer',

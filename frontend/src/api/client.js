@@ -17,6 +17,7 @@ export const sendProfileChatMessage = (messages) => api.post('/profile_chat', { 
 export const getMovies = () => api.get('/movies');
 export const getMovie = (id) => api.get(`/movies/${id}`);
 export const getMovieSafety = (id) => api.get(`/movies/${id}/safety`);
+export const getRecommendations = (data) => api.post('/recommendations', data);
 
 // ---- Viewing Plans ----
 export const generateViewingPlan = (movieId, profileId) =>
